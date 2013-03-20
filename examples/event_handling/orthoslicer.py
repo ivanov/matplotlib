@@ -1,3 +1,6 @@
+import matplotlib
+#matplotlib.use('TkAgg')
+#matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 from matplotlib.image import AxesImage
 
@@ -28,10 +31,10 @@ class OrthoSlicer3D(object):
 
     OrthoSlicer3d expects 3-dimensional data, and creates a figure with 3
     axes for each slice orientation. Moving the mouse in any one axes will
-    select out the corresponding slices in the other two. Clicking the left
-    mouse button toggles mouse following. Scrolling up and down moves that
-    slice up and down. Right clicking triggers a full redraw (to update the
-    ticks, for example).
+    select out the corresponding slices in the other two. Clicking the right
+    mouse button toggles mouse following and triggers a full redraw (to update
+    the ticks, for example). Scrolling up and down moves that slice up and
+    down. 
 
     Example
     -------
@@ -114,6 +117,7 @@ class OrthoSlicer3D(object):
         if hasattr(event,'inaxes') and event.inaxes:
             artist = event.inaxes.images[0]
             me = event
+            me.button = 1 if self.toggle_update else 0
         elif hasattr(event, 'artist'):
             artist = event.artist
             me = event.mouseevent
@@ -123,9 +127,9 @@ class OrthoSlicer3D(object):
             im = artist
             ax = artist.axes
             imx,imy = im.imx, im.imy
-            if me.button == 1 or self.toggle_update:
-                if me.button == 1:
-                    self.toggle_update = not self.toggle_update
+            if me.button == 1: # or self.toggle_update:
+                #if me.button == 1:
+                #    self.toggle_update = not self.toggle_update
                 x,y = np.round((me.xdata, me.ydata)).astype(int)
                 imx.set_data(self.data[imx.get_slice(x)])
                 imy.set_data(self.data[imy.get_slice(y)])
@@ -137,7 +141,12 @@ class OrthoSlicer3D(object):
                     ax.figure.canvas.blit(ax.bbox)
                 return
             if me.button == 3:
-                plt.draw() # redraw the ticks which don't get blitted
+                self.toggle_update = not self.toggle_update
+                # the axes might be in different figures, redraw all of them
+                #for fig in self.figs:
+                #    fig.canvas.draw() # redraw the ticks which don't get blitted
+                plt.draw()
+                return
             if me.button not in ('up', 'down'):
                 return
             if me.button == 'up':
@@ -154,5 +163,12 @@ if __name__ == '__main__':
     a = np.sin(np.linspace(0,np.pi,20))
     b = np.sin(np.linspace(0,np.pi*5,20))
     data = np.outer(a,b)[..., np.newaxis]*a
-
+    # all slices
     OrthoSlicer3D(data)
+
+    # broken out into three separate figures
+    f, ax1 = plt.subplots()
+    f, ax2 = plt.subplots()
+    f, ax3 = plt.subplots()
+    OrthoSlicer3D(data, axes=(ax1, ax2, ax3))
+
